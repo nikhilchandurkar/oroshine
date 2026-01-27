@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to OroShine Dental Care</title>
+</head>
+<body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    
+                    <tr>
+                        <td style="background-color: #0d6efd; padding: 30px; text-align: center; color: #ffffff;">
+                            <h1 style="margin: 0; font-size: 28px;">Welcome, {{ username }}! 👋</h1>
+                            <p style="margin: 10px 0 0; font-size: 16px; opacity: 0.9;">You are now part of the OroShine Family</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 30px; color: #333333; line-height: 1.6;">
+                            <p>Dear <strong>{{ username }}</strong>,</p>
+                            <p>Thank you for registering with <strong>OroShine Dental Care</strong>. We are thrilled to help you achieve the perfect smile!</p>
+
+                            {% if is_social %}
+                            <div style="background-color: #e7f1ff; border-left: 4px solid #0d6efd; padding: 15px; margin: 20px 0; font-size: 14px;">
+                                <strong>Note:</strong> You signed up using social login. For security, you can set a password in your profile settings later.
+                            </div>
+                            {% endif %}
+
+                            <h3>🚀 What's Next?</h3>
+                            <ul style="color: #555;">
+                                <li>Complete your profile with medical history.</li>
+                                <li>Browse our services and book your first appointment.</li>
+                                <li>Check out our special offers for new patients.</li>
+                            </ul>
+
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="https://oroshinedental.com/login" style="background-color: #0d6efd; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                                    Book an Appointment
+                                </a>
+                            </div>
+
+                            <h3>📍 Visit Us</h3>
+                            <p style="margin-bottom: 5px;"><strong>Sai Dental Clinic</strong></p>
+                            <p style="color: #666; margin-top: 0;">
+                                203, 2nd Floor, Chandrangan Residency Tower,<br>
+                                Diva East, Navi Mumbai – 400612
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="background-color: #eeeeee; padding: 20px; text-align: center; font-size: 12px; color: #777;">
+                            <p style="margin: 0;">© 2026 OroShine Dental Care. All rights reserved.</p>
+                            <p style="margin: 5px 0;">
+                                <a href="#" style="color: #0d6efd; text-decoration: none;">Privacy Policy</a> | 
+                                <a href="#" style="color: #0d6efd; text-decoration: none;">Contact Us</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

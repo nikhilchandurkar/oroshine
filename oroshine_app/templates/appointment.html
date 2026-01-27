@@ -128,20 +128,39 @@
             const alertBox = document.getElementById('alert-container');
             const submitBtn = document.getElementById('submit-btn');
 
-            // Initial state
             submitBtn.disabled = true;
 
-            function showAlert(message, type = 'success') {
+            /* =============================
+               Django-style alert renderer
+            ============================== */
+            function showMessage(message, tag = 'success') {
                 alertBox.innerHTML = `
-        <div class="alert alert-${type} alert-dismissible fade show">
+          <div role="alert" class="alert alert-${tag} alert-dismissible fade show">
             ${message}
-            <button class="btn-close" data-bs-dismiss="alert"></button>
-        </div>`;
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        `;
             }
 
-            /* -----------------------------
-               Fetch Slots 
-            ------------------------------*/
+            /* =============================
+               CSRF helper
+            ============================== */
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    document.cookie.split(';').forEach(cookie => {
+                        const c = cookie.trim();
+                        if (c.startsWith(name + '=')) {
+                            cookieValue = decodeURIComponent(c.slice(name.length + 1));
+                        }
+                    });
+                }
+                return cookieValue;
+            }
+
+            /* =============================
+               Fetch available slots
+            ============================== */
             function fetchSlots() {
                 if (!doctorSelect.value || !dateSelect.value) return;
 
@@ -151,7 +170,6 @@
                 const fd = new FormData();
                 fd.append('doctor_id', doctorSelect.value);
                 fd.append('date', dateSelect.value);
-                // fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
                 fetch("{% url 'check_slots_ajax' %}", {
                     method: 'POST',
@@ -194,25 +212,57 @@
                     });
             }
 
-            // Trigger slot fetch
             doctorSelect.addEventListener('change', fetchSlots);
             dateSelect.addEventListener('change', fetchSlots);
 
-            // Enable submit only after slot selection
             timeSelect.addEventListener('change', () => {
                 submitBtn.disabled = false;
             });
 
-            /* -----------------------------
-               Optimistic Booking Submit
-            ------------------------------*/
+            /* =============================
+               Frontend validations
+            ============================== */
+            function validateForm() {
+                const name = form.name.value.trim();
+                const email = form.email.value.trim();
+                const phone = form.phone.value.trim();
+                const service = form.service.value;
+                const doctor = form.doctor.value;
+                const date = form.date.value;
+                const time = form.time.value;
+                const message = form.message.value.trim();
+
+                if (!name) return 'Please enter your name.';
+                if (!email || !/^\S+@\S+\.\S+$/.test(email)) return 'Enter a valid email address.';
+                if (!phone || !/^\d{10}$/.test(phone)) return 'Enter a valid 10-digit phone number.';
+                if (!service) return 'Please select a service.';
+                if (!doctor) return 'Please select a doctor.';
+                if (!date) return 'Please select a date.';
+                if (!time) return 'Please select a time slot.';
+                if (message.length > 500) return 'Message cannot exceed 500 characters.';
+
+                return null; // all good
+            }
+
+            /* =============================
+               AJAX Booking Submit
+            ============================== */
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
 
+                alertBox.innerHTML = '';
+
+                if (submitBtn.disabled) return;
+
+                const validationError = validateForm();
+                if (validationError) {
+                    showMessage(validationError, 'warning');
+                    return;
+                }
+
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Booking...';
-
-                showAlert('Appointment request submitted. Processing...', 'success');
+                showMessage('⏳ Processing your appointment...', 'info');
 
                 const fd = new FormData(form);
 
@@ -221,11 +271,15 @@
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRFToken': getCookie('csrftoken')
-                    }, body: fd
+                    },
+                    body: fd
                 })
                     .then(res => {
                         if (res.status === 409) {
-                            showAlert('Slot was just booked by someone else. Please choose another.', 'warning');
+                            showMessage(
+                                '⚠️ This slot was just booked by someone else. Please select another.',
+                                'warning'
+                            );
                             submitBtn.disabled = false;
                             submitBtn.textContent = 'Confirm Appointment';
                             throw new Error('Slot conflict');
@@ -234,18 +288,27 @@
                     })
                     .then(data => {
                         if (data.status !== 'success') {
-                            showAlert(data.message || 'Booking failed', 'danger');
+                            showMessage(data.message || 'Booking failed.', 'danger');
                             submitBtn.disabled = false;
                             submitBtn.textContent = 'Confirm Appointment';
                             return;
                         }
 
-                        form.reset();
-                        timeSelect.disabled = true;
-                        timeSelect.innerHTML = '<option>Select date and doctor first</option>';
+                        showMessage(
+                            ' Appointment booked successfully! Confirmation email & calendar invite will arrive shortly.',
+                            'success'
+                        );
 
+                        submitBtn.textContent = 'Booked ✓';
+
+                        // Lock form (prevent double submit)
+                        Array.from(form.elements).forEach(el => el.disabled = true);
+
+                        // Optional redirect (smooth)
                         if (data.redirect_url) {
-                            setTimeout(() => window.location.href = data.redirect_url, 1200);
+                            setTimeout(() => {
+                                window.location.href = data.redirect_url;
+                            }, 3000);
                         }
                     })
                     .catch(() => {
@@ -255,23 +318,7 @@
             });
 
         });
-
-
-
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                document.cookie.split(';').forEach(cookie => {
-                    const c = cookie.trim();
-                    if (c.startsWith(name + '=')) {
-                        cookieValue = decodeURIComponent(c.slice(name.length + 1));
-                    }
-                });
-            }
-            return cookieValue;
-        }
     </script>
-
 
 </body>
 

@@ -3,6 +3,10 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from .models import UserProfile,Appointment,TIME_SLOTS,Doctor
 from .services_cache import get_service_tuples
+from PIL import Image
+from io import BytesIO
+from django.core.files.uploadedfile import InMemoryUploadedFile
+import sys
 
 
 class NewUserForm(UserCreationForm):
@@ -32,22 +36,109 @@ class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
         fields = [
-            'phone', 'date_of_birth', 'address', 'city', 'state', 'zip_code',
-            'avatar', 'emergency_contact_name', 'emergency_contact_phone',
-            'medical_history', 'allergies'
+            'phone', 'date_of_birth', 'address', 'city', 'state', 
+            'zip_code', 'avatar', 'emergency_contact_name', 
+            'emergency_contact_phone', 'medical_history', 'allergies'
         ]
         widgets = {
-            'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'phone': forms.TextInput(attrs={'class': 'form-control'}),
-            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'city': forms.TextInput(attrs={'class': 'form-control'}),
-            'state': forms.TextInput(attrs={'class': 'form-control'}),
-            'zip_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'emergency_contact_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'emergency_contact_phone': forms.TextInput(attrs={'class': 'form-control'}),
-            'medical_history': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'allergies': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': '+91 (555) 123-4567'
+            }),
+            'date_of_birth': forms.DateInput(attrs={
+                'class': 'form-control', 
+                'type': 'date'
+            }),
+            'address': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3, 
+                'placeholder': '123 Main Street'
+            }),
+            'city': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Mumbai'
+            }),
+            'state': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Maharashtra'
+            }),
+            'zip_code': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': '441107'
+            }),
+            'avatar': forms.FileInput(attrs={
+                'class': 'form-control', 
+                'accept': 'image/*'
+            }),
+            'emergency_contact_name': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'John Doe'
+            }),
+            'emergency_contact_phone': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': '+1 (555) 987-6543'
+            }),
+            'medical_history': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 4, 
+                'placeholder': 'Any relevant medical history...'
+            }),
+            'allergies': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 2, 
+                'placeholder': 'List any allergies...'
+            }),
         }
+
+    def clean_avatar(self):
+        """Validate and compress avatar image"""
+        avatar = self.cleaned_data.get('avatar')
+        
+        if avatar:
+            # Check file size (2MB limit)
+            if avatar.size > 1 * 1024 * 1024:
+                raise forms.ValidationError("Image file too large ( > 2MB )")
+            
+            # Check file extension
+            valid_extensions = ['.jpg', '.jpeg', '.png', '.gif']
+            ext = avatar.name.split('.')[-1].lower()
+            if f'.{ext}' not in valid_extensions:
+                raise forms.ValidationError("Unsupported file extension. Use JPG, PNG, or GIF.")
+            
+            try:
+                # Compress and resize image
+                img = Image.open(avatar)
+                
+                # Convert RGBA to RGB if necessary
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                    img = background
+                
+                # Resize if too large
+                if img.height > 800 or img.width > 800:
+                    img.thumbnail((800, 800), Image.Resampling.LANCZOS)
+                
+                # Save to BytesIO
+                output = BytesIO()
+                img.save(output, format='JPEG', quality=85, optimize=True)
+                output.seek(0)
+                
+                # Create new InMemoryUploadedFile
+                avatar = InMemoryUploadedFile(
+                    output, 'ImageField', 
+                    f"{avatar.name.split('.')[0]}.jpg",
+                    'image/jpeg', 
+                    sys.getsizeof(output), 
+                    None
+                )
+            except Exception as e:
+                raise forms.ValidationError(f"Error processing image: {str(e)}")
+        
+        return avatar
+
+
+    
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

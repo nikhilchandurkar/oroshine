@@ -1,6 +1,7 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% load socialaccount %}
+{% get_providers as providers %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -17,24 +18,36 @@
 
                 <h1 class="mb-4">Create Account</h1>
 
+                <!-- Django Messages -->
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+
                 <form id="registration-form" method="POST" action="{% url 'custom_register' %}">
                     {% csrf_token %}
 
-                    <!-- Username -->
+                    <!-- Username with AJAX validation -->
                     <div class="mb-3 position-relative">
                         {{ register_form.username|as_crispy_field }}
                         <div id="username-feedback" class="invalid-feedback d-block"></div>
                         <div id="username-spinner"
-                            class="spinner-border spinner-border-sm text-primary d-none position-absolute end-0 top-50 translate-middle-y">
+                            class="spinner-border spinner-border-sm text-primary d-none position-absolute"
+                            style="right: 10px; top: 38px;">
                         </div>
                     </div>
 
-                    <!-- Email -->
+                    <!-- Email with AJAX validation -->
                     <div class="mb-3 position-relative">
                         {{ register_form.email|as_crispy_field }}
                         <div id="email-feedback" class="invalid-feedback d-block"></div>
                         <div id="email-spinner"
-                            class="spinner-border spinner-border-sm text-primary d-none position-absolute end-0 top-50 translate-middle-y">
+                            class="spinner-border spinner-border-sm text-primary d-none position-absolute"
+                            style="right: 10px; top: 38px;">
                         </div>
                     </div>
 
@@ -54,23 +67,24 @@
                 </p>
 
                 <!-- Social Login -->
-                {% get_providers as providers %}
-                {% if providers %}
-                <div class="social-login mt-4">
-                    <hr>
-                    <p class="text-center">Or continue with</p>
+                <!-- Other providers -->
+                <div class="d-grid gap-2 mt-3">
+                    {% for provider in providers %}
+                    {% if provider.id == "google" %}
+                    <a href="{% provider_login_url provider.id process='login' %}"
+                        class="btn btn-outline-dark d-flex align-items-center justify-content-center gap-2">
 
-                    <!-- Google Signup Button -->
-                    <a href="{% provider_login_url 'google' %}"
-                        class="btn btn-light border w-100 d-flex align-items-center justify-content-center gap-2 py-2">
-                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google"
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"
                             style="width: 20px; height: 20px;">
-                        <span class="fw-bold">Sign up with Google</span>
-                    </a>
-                </div>
-                {% endif %}
 
+                        <span>Continue with Google</span>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
             </div>
+
+
         </div>
         </div>
     </main>
@@ -151,7 +165,7 @@
         });
 
         /* -------------------------
-           EMAIL CHECK
+           EMAIL CHECK (checks both User and SocialAccount)
         -------------------------- */
         emailField?.addEventListener("input", () => {
             clearTimeout(emailTimer);
@@ -182,7 +196,7 @@
 
                     if (data.is_taken) {
                         emailField.classList.add("is-invalid");
-                        emailFeedback.textContent = "Email already registered.";
+                        emailFeedback.textContent = "Email already registered (regular or social login).";
                         emailOK = false;
                     } else {
                         emailField.classList.add("is-valid");

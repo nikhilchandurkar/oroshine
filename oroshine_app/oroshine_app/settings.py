@@ -68,7 +68,7 @@ INSTALLED_APPS = [
     'oroshine_webapp',
 ]
 
-SITE_ID = 1
+SITE_ID = 8
 
 MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
@@ -195,26 +195,7 @@ CELERY_TASK_MAX_RETRIES = 3
 CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
 
-# Task routes
-# CELERY_TASK_ROUTES = {
-#     'oroshine_webapp.tasks.send_appointment_email_task': {'queue': 'email'},
-    
-# }
-
-# CELERY_TASK_QUEUES = (
-#     Queue('default', Exchange('default'), routing_key='default'),
-#     Queue('email', Exchange('email'), routing_key='email'),
-#     Queue('calendar', Exchange('calendar'), routing_key='calendar'),
-# )
-
-# # Rate limits
-# CELERY_TASK_ANNOTATIONS = {
-#     'oroshine_webapp.tasks.send_appointment_email_task': {
-#         'rate_limit': '10/m',
-#         'time_limit': 300,
-#     },
-# }
-
+# 
 
 
 
@@ -233,29 +214,44 @@ CELERY_TASK_QUEUES = (
 )
 
 # 🚀 UPDATE THIS SECTION
-CELERY_TASK_ROUTES = {
-    # Route the email task to the 'email' queue
-    'oroshine_webapp.tasks.send_appointment_email_task': {
-        'queue': 'email',
-        'routing_key': 'email'
-    },
+# CELERY_TASK_ROUTES = {
+#     # Route the email task to the 'email' queue
+#     'oroshine_webapp.tasks.send_appointment_email_task': {
+#         'queue': 'email',
+#         'routing_key': 'email'
+#     },
     
-    # Route the calendar task to the 'calendar' queue
-    'oroshine_webapp.tasks.create_calendar_event_task': {
-        'queue': 'calendar',
-        'routing_key': 'calendar'
-    },
+#     # Route the calendar task to the 'calendar' queue
+#     'oroshine_webapp.tasks.create_calendar_event_task': {
+#         'queue': 'calendar',
+#         'routing_key': 'calendar'
+#     },
+
+
+
+# ==========================================
+# CELERY CONFIGURATION
+# ==========================================
+
+CELERY_TASK_ROUTES = {
+    # Email Queue
+    'oroshine_webapp.tasks.send_appointment_email_task': {'queue': 'email'},
+    'oroshine_webapp.tasks.send_welcome_email_task': {'queue': 'email'},
+    'oroshine_webapp.tasks.send_contact_email_task': {'queue': 'email'},      
+    'oroshine_webapp.tasks.send_password_reset_email_task': {'queue': 'email'}, 
+
+    'oroshine_webapp.tasks.create_calendar_event_task': {'queue': 'calendar'},
 }
-
-
-
 
 # ==========================================
 # AUTHENTICATION and all auth 
 # ==========================================
 AUTHENTICATION_BACKENDS = [
-    "allauth.account.auth_backends.AuthenticationBackend",
-    "django.contrib.auth.backends.ModelBackend",
+    # Needed to login by username in Django admin, regardless of `allauth`
+    'django.contrib.auth.backends.ModelBackend',
+
+    # `allauth` specific authentication methods, such as login by e-mail
+    'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
@@ -370,10 +366,20 @@ COMPRESS_CSS_FILTERS = [
     'compressor.filters.css_default.CssAbsoluteFilter',
     'compressor.filters.cssmin.CSSMinFilter',
 ]
-COMPRESS_JS_FILTERS = ['compressor.filters.jsmin.JSMinFilter']
+# COMPRESS_JS_FILTERS = ['compressor.filters.jsmin.JSMinFilter']
 
+COMPRESS_JS_FILTERS =[]
+
+
+
+# Compress output settings
+COMPRESS_OUTPUT_DIR = 'CACHE'
+COMPRESS_STORAGE = 'compressor.storage.CompressorFileStorage'
+
+# Parser settings
+COMPRESS_PARSER = 'compressor.parser.HtmlParser'
 # ==========================================
-# EMAIL CONFIGURATION and NoCodeAPI
+# EMAIL CONFIGURATION SMTP
 # ==========================================
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
@@ -384,9 +390,46 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 ADMIN_EMAIL = config('ADMIN_EMAIL', default=EMAIL_HOST_USER)
 
-# ⚠️ FIX: Add missing NOCODEAPI_KEY
-NOCODEAPI_BASE_URL = config('NOCODEAPI_BASE_URL')
-NOCODEAPI_KEY = config('NOCODEAPI_KEY', default='')  # Add this to .env
+
+
+# ==========================================
+# GOOGLE CALENDAR API CONFIGURATION
+# ==========================================
+# GOOGLE CALENDAR API CONFIGURATION
+# GOOGLE_CALENDAR_ID = config('GOOGLE_CALENDAR_ID', default='primary')
+
+GOOGLE_CALENDAR_ID="37d2bdca1b71cfa34c3af9d25354088a96085da7cbd5c6853e8cce116dfc47c0@group.calendar.google.com"
+
+GOOGLE_SCOPES = [
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/calendar.events",
+]
+
+
+# Reconstruct the Service Account Dictionary from Env Vars
+GOOGLE_SERVICE_ACCOUNT_INFO = {
+    "type": "service_account",
+    "project_id": config("GOOGLE_PROJECT_ID"),
+    "private_key_id": config("GOOGLE_PRIVATE_KEY_ID"),
+    "private_key": config("GOOGLE_PRIVATE_KEY").replace('\\n', '\n'),
+    "client_email": config("GOOGLE_CLIENT_EMAIL"),
+    "client_id": config("GOOGLE_CLIENT_ID"),
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": config("GOOGLE_CLIENT_CERT_URL"),
+}
+
+
+
+
+
+DEFAULT_FROM_EMAIL = "OroShine Dental <no-reply@oroshine.com>"
+
+FRONTEND_DOMAIN = "oroshine.com" 
+
+
+
 
 # ==========================================
 # LOGGING

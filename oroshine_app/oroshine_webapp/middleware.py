@@ -258,7 +258,7 @@ def invalidate_appointment_cache_on_delete(sender, instance, **kwargs):
     cache.delete(f'upcoming_appointments:{instance.user.id}')
     cache.delete(f'user_appointment_stats:{instance.user.id}')
     
-    cache_key = f'available_slots:{instance.date.strftime("%Y-%m-%d")}:{instance.doctor_email}'
+    cache_key = f'available_slots:{instance.date.strftime("%Y-%m-%d")}:{instance.doctor.id}'
     cache.delete(cache_key)
 
 

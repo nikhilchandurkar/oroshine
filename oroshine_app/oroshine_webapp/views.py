@@ -21,8 +21,14 @@ import re
 import json
 import random
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse,HttpResponseRedirect
 import uuid
+from allauth.account.models import EmailAddress
+from allauth.account.utils import send_email_confirmation
+from django.contrib.auth.views import PasswordResetView
+from django.urls import reverse_lazy,reverse
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
 
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
@@ -35,7 +41,16 @@ from .forms import NewUserForm, UserProfileForm, AppointmentForm
 from .tasks import (
     create_calendar_event_task,
     send_appointment_email_task,
+    send_welcome_email_task,
+    send_contact_email_task,
+    send_password_reset_email_task
 )
+
+
+
+
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -180,11 +195,37 @@ def register_request(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
+                    # 1. Save User
                     user = form.save()
-                    UserProfile.objects.create(user=user)
-                    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                    messages.success(request, "Registration successful!")
-                    return redirect('home')
+                    
+                    # 2. Create Profile
+                    UserProfile.objects.get_or_create(user=user)
+                    
+                    #  Manual Allauth Setup (Crucial for Verification)
+                    # We must manually create the EmailAddress object so Allauth knows about it
+                    EmailAddress.objects.create(
+                        user=user, 
+                        email=user.email, 
+                        primary=True, 
+                        verified=False
+                    )
+                    
+                    # This uses Allauth's built-in email sender
+                    send_email_confirmation(request, user)
+
+                    # 5. FIX: Queue Welcome Email Task
+                    transaction.on_commit(
+                        lambda: send_welcome_email_task.delay(
+                            user.id, 
+                            user.username, 
+                            user.email, 
+                            is_social=False
+                        )
+                    )
+
+                    messages.success(request, f"Account created! Please check {user.email} to verify your account.")
+                    return redirect('custom_login')
+
             except IntegrityError:
                 messages.error(request, "Username or email already exists.")
             except Exception as e:
@@ -198,39 +239,47 @@ def register_request(request):
     
     return render(request, "register.html", {"register_form": form})
 
-@rate_limit('login', limit=5, window=900)
+
+
+@rate_limit('login', limit=10, window=900)
 def login_request(request):
     if request.user.is_authenticated:
         return redirect('home')
 
-    # Handle AJAX Login
+    # --- AJAX Login Handler ---
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            if not user.is_active:
-                return JsonResponse({'status': 'error', 'message': 'Account disabled.'}, status=403)
-            login(request, user)
-            UserProfile.objects.get_or_create(user=user)
-            return JsonResponse({'status': 'success', 'redirect_url': request.GET.get('next', '/')})
-        return JsonResponse({'status': 'error', 'message': 'Invalid credentials'}, status=401)
+        # ... (Keep your existing AJAX logic, but Add Verification Check below) ...
+        pass 
 
-    # Handle Standard Login
+    # --- Standard Login Handler ---
     if request.method == "POST":
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
+
+            # FIX: Check if Email is Verified (Enforce Mandatory Setting)
+            if not EmailAddress.objects.filter(user=user, verified=True).exists():
+                # Allow login ONLY if it's a superuser, otherwise block
+                if not user.is_superuser:
+                    messages.error(request, "Please verify your email address before logging in.")
+                    
+                    # Optional: Resend verification link option here
+                    # send_email_confirmation(request, user) 
+                    
+                    return render(request, "login.html", {"login_form": form})
+
             login(request, user)
             UserProfile.objects.get_or_create(user=user)
             messages.success(request, f"Welcome back, {user.username}!")
             return redirect(request.GET.get('next', '/'))
         else:
-            messages.error(request, "Invalid credentials.")
+            messages.error(request, "Invalid username or password.")
     else:
         form = AuthenticationForm()
 
     return render(request, "login.html", {"login_form": form})
+
+
 
 def logout_request(request):
     user_id = request.user.id if request.user.is_authenticated else None
@@ -419,6 +468,7 @@ def appointment(request):
         'time_slots': TIME_SLOTS,
     })
 
+
 # ==========================================
 # CANCEL APPOINTMENT
 # ==========================================
@@ -462,10 +512,11 @@ def cancel_appointment(request, appointment_id):
             'message': 'Failed to cancel appointment'
         }, status=500)
 
+
+
 # ==========================================
 # PROFILE & CONTACT
 # ==========================================
-
 def contact(request):
     if request.method == 'POST':
         if not request.user.is_authenticated:
@@ -473,16 +524,24 @@ def contact(request):
             return redirect('login')
             
         try:
-            Contact.objects.create(
-                user=request.user,
-                name=request.POST.get('name'),
-                email=request.POST.get('email'),
-                subject=request.POST.get('subject'),
-                message=request.POST.get('message')
-            )
-            messages.success(request, "Message sent!")
+            with transaction.atomic():
+                contact_obj = Contact.objects.create(
+                    user=request.user,
+                    name=request.POST.get('name'),
+                    email=request.POST.get('email'),
+                    subject=request.POST.get('subject'),
+                    message=request.POST.get('message')
+                )
+                
+                # 🚀 TRIGGER ASYNC TASK
+                transaction.on_commit(
+                    lambda: send_contact_email_task.delay(contact_obj.id)
+                )
+
+            messages.success(request, "Message sent! We will contact you soon.")
             return redirect('home')
-        except Exception:
+        except Exception as e:
+            logger.error(f"Contact error: {e}")
             messages.error(request, "Error sending message.")
             
     return render(request, 'contact.html')
@@ -531,3 +590,45 @@ def user_profile(request):
         "completed_appointments": stats.get('completed', 0),
     }
     return render(request, "profile.html", context)
+
+
+
+
+
+
+
+
+
+
+class CustomPasswordResetView(PasswordResetView):
+    template_name = "password_reset.html"
+    success_url = reverse_lazy("password_reset_done")
+
+    def form_valid(self, form):
+        email = form.cleaned_data["email"]
+        users = User.objects.filter(email__iexact=email)
+
+        # Security best practice: always show success
+        messages.success(
+            self.request,
+            "If this email exists, a password reset link has been sent."
+        )
+
+        for user in users:
+            token = self.token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+            reset_link = (
+                f"{self.request.scheme}://"
+                f"{self.request.get_host()}"
+                f"{reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})}"
+            )
+
+            # 🚀 Async email
+            send_password_reset_email_task.delay(
+                email=user.email,
+                reset_link=reset_link,
+                username=user.get_username()
+            )
+
+        return HttpResponseRedirect(self.success_url)

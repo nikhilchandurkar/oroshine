@@ -22,7 +22,7 @@ CACHE_KEYS = {
     'doctor': 'doctor:{email}',
     'doctors_active': 'active_doctors_list',
     'doctor_choices': 'doctor_form_choices',
-    'slots': 'slots:{doctor_email}:{date}',
+    'slots': 'slots:{doctor.id}:{date}',
     'user_appointments': 'user_appointments:{user_id}',
     'user_stats': 'user_appointment_stats:{user_id}',
     'time_slots': 'time_slots_list',
@@ -35,7 +35,7 @@ CACHE_KEYS = {
 # ==========================================
 
 CACHE_TIMEOUTS = {
-    'doctor': 1800,        # 30 minutes
+    'doctor': 3600,        # 30 minutes
     'doctors_list': 3600,  # 1 hour
     'slots': 180,          # 3 minutes (short for availability)
     'appointments': 300,   # 5 minutes
@@ -124,31 +124,31 @@ def invalidate_doctor_cache(email=None):
 # SLOT AVAILABILITY CACHING
 # ==========================================
 
-def get_booked_slots_cached(doctor_email, date):
+def get_booked_slots_cached(doctor, date):
     """Get booked slots for a doctor on a specific date"""
-    cache_key = CACHE_KEYS['slots'].format(doctor_email=doctor_email, date=date)
+    cache_key = CACHE_KEYS['slots'].format(doctor=doctor.id, date=date)
     booked_slots = cache.get(cache_key)
     
     if booked_slots is None:
         from oroshine_webapp.models import Appointment
         booked_slots = set(
             Appointment.objects.filter(
-                doctor_email=doctor_email,
+                doctor=doctor.id,
                 date=date,
                 status__in=['pending', 'confirmed']
             ).values_list('time', flat=True)
         )
         cache.set(cache_key, booked_slots, CACHE_TIMEOUTS['slots'])
-        logger.debug(f"Slots cached: {doctor_email} on {date}")
+        logger.debug(f"Slots cached: {doctor} on {date}")
     
     return booked_slots
 
 
-def invalidate_slots_cache(doctor_email, date):
+def invalidate_slots_cache(doctor, date):
     """Invalidate slot availability cache"""
-    cache_key = CACHE_KEYS['slots'].format(doctor_email=doctor_email, date=date)
+    cache_key = CACHE_KEYS['slots'].format(doctor=doctor.id, date=date)
     cache.delete(cache_key)
-    logger.debug(f"Slots cache invalidated: {doctor_email} on {date}")
+    logger.debug(f"Slots cache invalidated: {doctor} on {date}")
 
 
 # ==========================================
@@ -165,7 +165,7 @@ def get_user_appointments_cached(user_id, limit=10):
         appointments = list(
             Appointment.objects.filter(user_id=user_id)
             .select_related('user')
-            .only('id', 'date', 'time', 'service', 'doctor_email', 'status')
+            .only('id', 'date', 'time', 'service', 'doctor', 'status')
             .order_by('-date', '-time')[:limit]
         )
         cache.set(cache_key, appointments, CACHE_TIMEOUTS['appointments'])
@@ -215,7 +215,7 @@ def invalidate_appointment_related_cache(appointment):
     """
     keys_to_delete = [
         CACHE_KEYS['slots'].format(
-            doctor_email=appointment.doctor_email,
+            doctor=appointment.doctor.id,
             date=appointment.date
         ),
         CACHE_KEYS['user_appointments'].format(user_id=appointment.user_id),
@@ -226,7 +226,7 @@ def invalidate_appointment_related_cache(appointment):
     logger.info(f"Appointment cache invalidated: {appointment.id}")
 
 
-def warm_cache_for_date_range(doctor_email, start_date, end_date):
+def warm_cache_for_date_range(doctor, start_date, end_date):
     """
     Pre-populate cache for a date range
     Useful for frequently accessed dates
@@ -237,13 +237,13 @@ def warm_cache_for_date_range(doctor_email, start_date, end_date):
     current_date = start_date
     while current_date <= end_date:
         cache_key = CACHE_KEYS['slots'].format(
-            doctor_email=doctor_email,
+            doctor=doctor.id,
             date=current_date
         )
         
         booked_slots = set(
             Appointment.objects.filter(
-                doctor_email=doctor_email,
+                doctor=doctor.id,
                 date=current_date,
                 status__in=['pending', 'confirmed']
             ).values_list('time', flat=True)
@@ -252,7 +252,7 @@ def warm_cache_for_date_range(doctor_email, start_date, end_date):
         cache.set(cache_key, booked_slots, CACHE_TIMEOUTS['slots'])
         current_date += timedelta(days=1)
     
-    logger.info(f"Cache warmed for {doctor_email} from {start_date} to {end_date}")
+    logger.info(f"Cache warmed for {doctor} from {start_date} to {end_date}")
 
 
 def clear_all_appointment_caches():

@@ -2,9 +2,9 @@
 # Optimized for t2.micro with minimal resource usage
 
 global:
-  scrape_interval: 30s
-  evaluation_interval: 30s
-  scrape_timeout: 10s
+  scrape_interval: 40s
+  evaluation_interval: 40s
+  scrape_timeout: 20s
   external_labels:
     cluster: 'oroshine-production'
     environment: 'prod'
@@ -32,7 +32,7 @@ scrape_configs:
     static_configs:
       - targets: ['web:8000']
     metrics_path: '/metrics/'
-    scrape_interval: 30s
+    scrape_interval: 60s
     metric_relabel_configs:
       # Keep only business metrics
       - source_labels: [__name__]

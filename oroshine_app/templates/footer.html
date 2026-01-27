@@ -1,4 +1,3 @@
-
 {% load static %}
 {% load humanize %}
 {% load compress %}
@@ -73,28 +72,107 @@
 </a>
 
 {% compress js %}
+<!-- Load jQuery FIRST (required by all other libraries) -->
 <script src="{% static 'lib/jquery/jquery.min.js' %}"></script>
+
+<!-- Load Bootstrap Bundle -->
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+
+<!-- Load animation libraries -->
 <script src="{% static 'lib/wow/wow.min.js' %}"></script>
 <script src="{% static 'lib/easing/jquery.easing.min.js' %}"></script>
 <script src="{% static 'lib/waypoints/waypoints.min.js' %}"></script>
+
+<!-- Load Owl Carousel -->
 <script src="{% static 'lib/owlcarousel/owl.carousel.min.js' %}"></script>
+
+<!-- Load other libraries -->
 <script src="{% static 'lib/tempusdominus/js/tempus-dominus.min.js' %}"></script>
+
+<script src="{% static 'lib/tempusdominus/js/popper.min.js' %}"></script>
+
+
 <script src="{% static 'lib/twentytwenty/jquery.event.move.js' %}"></script>
 <script src="{% static 'lib/twentytwenty/jquery.twentytwenty.js' %}"></script>
+
+<!-- Load custom main.js -->
 <script src="{% static 'js/main.js' %}"></script>
+{% endcompress %}
 
-<!-- Inline Initialization -->
+<!-- Initialize all carousels and animations - OUTSIDE compress tag for reliability -->
 <script>
-    new WOW().init();
+    jQuery(document).ready(function($) {
+        // Initialize WOW.js for scroll animations
+        if (typeof WOW !== 'undefined') {
+            new WOW().init();
+        }
 
-    $('.price-carousel').owlCarousel({
-        autoplay: true,
-        smartSpeed: 1500,
-        margin: 30,
-        dots: true,
-        loop: true,
-        items: 1
+        // Initialize Pricing Carousel
+        if ($('.price-carousel').length > 0) {
+            $('.price-carousel').owlCarousel({
+                autoplay: true,
+                smartSpeed: 1500,
+                margin: 30,
+                dots: true,
+                loop: true,
+                nav: false,
+                responsive: {
+                    0: { items: 1 },
+                    768: { items: 2 },
+                    992: { items: 3 }
+                }
+            });
+        }
+
+        // Initialize Testimonial Carousel
+        if ($('.testimonial-carousel').length > 0) {
+            $('.testimonial-carousel').owlCarousel({
+                autoplay: true,
+                smartSpeed: 1500,
+                margin: 30,
+                dots: true,
+                loop: true,
+                nav: false,
+                center: true,
+                responsive: {
+                    0: { items: 1 },
+                    768: { items: 2 },
+                    992: { items: 3 }
+                }
+            });
+        }
+
+        // Initialize Team Carousel
+        if ($('.team-carousel').length > 0) {
+            $('.team-carousel').owlCarousel({
+                autoplay: true,
+                smartSpeed: 1500,
+                margin: 30,
+                dots: true,
+                loop: true,
+                nav: false,
+                responsive: {
+                    0: { items: 1 },
+                    768: { items: 2 },
+                    992: { items: 3 },
+                    1200: { items: 4 }
+                }
+            });
+        }
+
+        // Back to top button functionality
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 100) {
+                $('.back-to-top').fadeIn('slow');
+            } else {
+                $('.back-to-top').fadeOut('slow');
+            }
+        });
+
+        $('.back-to-top').click(function(e) {
+            e.preventDefault();
+            $('html, body').animate({scrollTop: 0}, 1500, 'easeInOutExpo');
+            return false;
+        });
     });
 </script>
-{% endcompress %}

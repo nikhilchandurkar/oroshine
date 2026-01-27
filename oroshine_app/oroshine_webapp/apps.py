@@ -12,7 +12,7 @@ class OroshineWebappConfig(AppConfig):
         # Path to default avatar
         import oroshine_webapp.signals
         media_dir = Path("media/avatars")
-        default_avatar = media_dir/ "default.png"
+        default_avatar = media_dir/ "default.jpeg"
         
         # Create folder if not exists
         os.makedirs(media_dir, exist_ok=True)

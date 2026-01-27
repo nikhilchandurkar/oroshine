@@ -183,6 +183,7 @@ class UserProfile(models.Model):
     city = models.CharField(max_length=100, blank=True, db_index=True)
     state = models.CharField(max_length=100, blank=True)
     zip_code = models.CharField(max_length=10, blank=True)
+    welcome_email_sent = models.BooleanField(default=False)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     emergency_contact_name = models.CharField(max_length=100, blank=True)
     emergency_contact_phone = models.CharField(max_length=15, blank=True)
@@ -276,7 +277,7 @@ class Service(models.Model):
 class Appointment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments', db_index=True)
     service = models.CharField(max_length=100, choices=SERVICE_CHOICES, db_index=True)
-    doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT, related_name='appointments')
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='appointments')
     name = models.CharField(max_length=100)
     email = models.EmailField()
     phone = models.CharField(max_length=15)

@@ -1,60 +1,86 @@
-# appointments/emails.py
-
+import logging
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
-from django.utils import timezone
-import logging
 
 logger = logging.getLogger(__name__)
 
+def send_html_email(subject, template_name, context, recipient_list):
+    """
+    Utility to render HTML, create a plain text fallback, and send.
+    """
+    try:
+        # Render HTML from the template folder
+        html_content = render_to_string(template_name, context)
+        # Auto-generate plain text from HTML
+        text_content = strip_tags(html_content)
+
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=recipient_list
+        )
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email '{subject}' to {recipient_list}: {e}")
+        # We re-raise to let Celery know it failed so it can retry
+        raise e
 
 def send_appointment_emails(appointment):
     """
-    Sends admin + user emails.
-    Pure email logic only.
+    Sends 3 separate emails (User, Admin, Doctor) using HTML templates.
     """
+    # Context dictionary matching your HTML variables (e.g., {{ appointment.name }})
+    context = {'appointment': appointment}
 
-    context = {
-        "appointment": appointment,
-        "timestamp": timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
-    }
-
-    # ======================
-    # ADMIN EMAIL
-    # ======================
-    admin_html = render_to_string(
-        "emails/appointment_admin.html", context
+    # 1. Patient Confirmation
+    send_html_email(
+        subject=f"Appointment Confirmed! ✅ - {appointment.service}",
+        template_name="emails/appointment_user.html",
+        context=context,
+        recipient_list=[appointment.email]
     )
-    admin_text = strip_tags(admin_html)
 
-    admin_msg = EmailMultiAlternatives(
-        subject="New Appointment Booking - OroShine Dental Care",
-        body=admin_text,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[settings.ADMIN_EMAIL],
+    # 2. Admin Notification
+    # send_html_email(
+    #     subject=f"🔔 New Booking: {appointment.name} - {appointment.service}",
+    #     template_name="emails/appointment_admin.html",
+    #     context=context,
+    #     recipient_list=[settings.ADMIN_EMAIL]
+    # )
+
+    # 3. Doctor Notification (if applicable)
+    if appointment.doctor and appointment.doctor.email:
+        # Reusing admin template for doctor (or create specific appointment_doctor.html)
+        send_html_email(
+            subject=f"New Patient: {appointment.name}",
+            template_name="emails/appointment_admin.html",
+            context=context,
+            recipient_list=[appointment.doctor.email]
+        )
+
+def send_contact_emails(contact_data):
+    """
+    Sends 'Contact Us' acknowledgement + Admin alert.
+    """
+    # contact_data is a dictionary or object containing name, email, subject, message, ip
+    
+    # 1. User Acknowledgement
+    send_html_email(
+        subject="We Received Your Message – OroShine Dental",
+        template_name="emails/contact_user.html",
+        context=contact_data,
+        recipient_list=[contact_data['email']]
     )
-    admin_msg.attach_alternative(admin_html, "text/html")
-    admin_msg.send()
 
-    # ======================
-    # USER EMAIL
-    # ======================
-    user_html = render_to_string(
-        "emails/appointment_user.html", context
-    )
-    user_text = strip_tags(user_html)
-
-    user_msg = EmailMultiAlternatives(
-        subject="Your Appointment Confirmation - OroShine Dental Care",
-        body=user_text,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[appointment.email],
-    )
-    user_msg.attach_alternative(user_html, "text/html")
-    user_msg.send()
-
-    logger.info(
-        f"Emails sent for appointment {appointment.id}"
+    # 2. Admin Alert
+    send_html_email(
+        subject=f"New Inquiry: {contact_data['subject']}",
+        template_name="emails/contact_admin.html",
+        context=contact_data,
+        recipient_list=[settings.ADMIN_EMAIL]
     )
