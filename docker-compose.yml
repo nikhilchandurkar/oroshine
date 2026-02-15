@@ -12,6 +12,7 @@ services:
   # Redis Cache
   redis:
     image: redis:7-alpine
+    container_name: redis
     command: redis-server --requirepass ${REDIS_PASSWORD}
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
@@ -47,7 +48,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    command: celery -A oroshine_app worker --loglevel=info --concurrency=1
+    command: celery -A oroshine_app worker --loglevel=DEBUG --concurrency=4
 
   # Celery Beat Scheduler
   celery_beat:
@@ -57,7 +58,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    command: celery -A oroshine_app beat --loglevel=info
+    command: celery -A oroshine_app beat --loglevel=DEBUG
 
   # Nginx Reverse Proxy
   nginx:
@@ -90,12 +91,11 @@ services:
     container_name: node_exporter
     restart: unless-stopped
     ports:
-    - "9100:9100"
+      - "9100:9100"
     user: root
-    network_mode: "host"
-    pid: "host"
     command:
       - '--path.rootfs=/'
+
 
   # cAdvisor (Container Metrics)
   cadvisor:

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Appointment Cancelled</title>
+</head>
+<body style="font-family: Arial, sans-serif; background:#f4f6f9; padding:20px;">
+    <div style="max-width:600px; margin:auto; background:white; padding:30px; border-radius:8px;">
+        
+        <h2 style="color:#d9534f;">❌ Appointment Cancelled</h2>
+
+        <p>Hello {{ appointment.user.get_full_name|default:appointment.user.username }},</p>
+
+        <p>Your appointment has been successfully cancelled.</p>
+
+        <hr>
+
+        <p><strong>Doctor:</strong> {{ appointment.doctor.full_name }}</p>
+        <p><strong>Service:</strong> {{ appointment.get_service_display }}</p>
+        <p><strong>Date:</strong> {{ appointment.date }}</p>
+        <p><strong>Time:</strong> {{ appointment.get_time_display }}</p>
+
+        <hr>
+
+        <p>If this was a mistake, you can book a new appointment anytime.</p>
+
+        <p style="margin-top:30px;">
+            — <strong>OroShine Dental Care</strong>
+        </p>
+
+    </div>
+</body>
+</html>

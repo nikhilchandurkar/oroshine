@@ -1,6 +1,6 @@
 # Oroshine
 
-A Django web application with PostgreSQL database, email functionality, and Google Calendar integration through NoCode API.
+A Django web application with PostgreSQL database, email functionality, and Google Calendar integration .
 
 ## 🚀 Quick Start
 
@@ -27,6 +27,7 @@ Choose your preferred setup method:
 git clone git@github.com:devendrabobde/oroshine.git
 cd oroshine
 ```
+
 
 ### 2. Create Virtual Environment
 
@@ -73,8 +74,7 @@ EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-app-password
 
-# Calendar Integration
-NOCODEAPI_CALENDAR_URL=https://v1.nocodeapi.com/your-username/calendar/your-api-key
+
 ```
 
 ### 5. Database Setup
@@ -148,7 +148,13 @@ EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-app-password
 
 # Calendar Integration
-NOCODEAPI_CALENDAR_URL=https://v1.nocodeapi.com/your-username/calendar/your-api-key
+GOOGLE_CALENDAR_ID=
+GOOGLE_PROJECT_ID=
+GOOGLE_PRIVATE_KEY_ID=
+GOOGLE_CLIENT_EMAIL=
+GOOGLE_CLIENT_ID =
+GOOGLE_CLIENT_CERT_URL =
+GOOGLE_PRIVATE_KEY=
 ```
 
 ### 2. Build and Run
@@ -218,28 +224,6 @@ oroshine/
 
 ## 🗓️ Google Calendar Integration Setup
 
-### 1. Create NoCodeAPI Account
-1. Visit [NoCodeAPI.com](https://nocodeapi.com)
-2. Sign up or log in
-3. Verify your email
-
-### 2. Setup Google Calendar Integration
-1. **Create API**: Dashboard → "Create New API" → "Google Calendar"
-2. **Connect Google**: Sign in and grant calendar permissions
-3. **Configure**: Set API name and permissions (Read/Write)
-4. **Get Endpoint**: Copy your unique API URL
-
-### 3. Update Environment
-Add the API URL to your `.env` file:
-```env
-NOCODEAPI_CALENDAR_URL=https://v1.nocodeapi.com/your-username/calendar/your-api-key
-```
-
-### 4. Test Connection
-```bash
-curl -X GET "https://v1.nocodeapi.com/your-username/calendar/your-api-key/events"
-```
-
 ## 📧 Email Configuration
 
 ### Gmail Setup
@@ -294,15 +278,10 @@ docker-compose restart
 - Use strong secret keys in production
 - Set `DEBUG=False` for production
 - Regularly backup your database
-- Monitor API usage limits for NoCode Calendar
+- 
 
 update readme 
 
-
-
-
-
-<!--  addded  pormethus too check  health  permormance metrices  -->
 
 
 

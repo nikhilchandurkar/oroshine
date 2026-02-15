@@ -1,6 +1,8 @@
 import os
 import time
 from celery import Celery
+from celery import shared_task
+
 from celery.schedules import crontab
 from celery.signals import (
     task_prerun, task_postrun, 
@@ -82,11 +84,11 @@ def task_failure_handler(task_id, exception, *args, **kwargs):
     celery_task_total.labels(task_name=task_name, status='failure').inc()
     print(f"[Celery] Failed task: {task_name} - {exception}")
 
-@app.task(bind=True, ignore_result=True)
-def debug_task(self):
-    """Debug task to verify Celery is working"""
-    print(f'Request: {self.request!r}')
-    return 'Celery is working!'
+# @app.task(bind=True, ignore_result=True)
+# def debug_task(self):
+#     """Debug task to verify Celery is working"""
+#     print(f'Request: {self.request!r}')
+#     return 'Celery is working!'
 
 
 
@@ -119,8 +121,7 @@ app.conf.beat_schedule = {
 }
 
 
-from celery import shared_task
 
-@shared_task
-def heartbeat():
-    print(" Celery Beat is alive!")
+# @shared_task
+# def heartbeat():
+#     print(" Celery Beat is alive!")

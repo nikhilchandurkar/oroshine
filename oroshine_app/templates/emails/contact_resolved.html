@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Your Inquiry Has Been Resolved</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f4f4f4;">
+    
+    <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px;">
+        
+        <!-- Header -->
+        <div style="text-align: center; padding-bottom: 20px; border-bottom: 3px solid #28a745;">
+            <h1 style="color: #28a745; margin: 0;">✅ Inquiry Resolved!</h1>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 20px 0;">
+            <p>Dear <strong>{{ contact.name }}</strong>,</p>
+            
+            <p>We're writing to let you know that your inquiry has been <strong>resolved</strong> by our team.</p>
+
+            <!-- Inquiry Details Box -->
+            <div style="background: #f8f9fa; padding: 20px; margin: 20px 0; border-left: 4px solid #28a745; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #28a745;">Your Inquiry</h3>
+                
+                <p><strong>Subject:</strong> {{ contact.subject }}</p>
+                <p><strong>Submitted:</strong> {{ contact.created_at|date:"F d, Y" }}</p>
+                <p><strong>Resolved:</strong> {{ contact.resolved_at|date:"F d, Y" }}</p>
+            </div>
+
+            <!-- Original Message -->
+            <div style="background: #e7f3ff; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0;"><strong>💬 Your Original Message:</strong></p>
+                <p style="margin: 10px 0; padding: 10px; background: white; border-radius: 4px; font-style: italic;">
+                    "{{ contact.message }}"
+                </p>
+            </div>
+
+            <p>We hope our response addressed your concerns satisfactorily. If you have any follow-up questions or need further assistance, please don't hesitate to reach out.</p>
+
+            <!-- Contact Info -->
+            <div style="background: #fff3cd; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0;"><strong>📞 Still Have Questions?</strong></p>
+                <p style="margin: 10px 0 0 0;">
+                    You can reply to this email or contact us at:<br>
+                    📧 oroshinedental@gmail.com<br>
+                    📞 +91-XXXXXXXXXX
+                </p>
+            </div>
+
+            <p style="text-align: center; margin: 30px 0;">
+                <strong>Thank you for contacting OroShine Dental Care!</strong>
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+            <p><strong>OroShine Dental Care</strong></p>
+            <p>📍 Sai Dental Clinic, Diva East, Navi Mumbai</p>
+            <p style="color: #999; font-size: 12px;">
+                This is an automated notification about your inquiry status.
+            </p>
+        </div>
+
+    </div>
+
+</body>
+</html>

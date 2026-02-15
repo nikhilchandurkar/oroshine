@@ -17,6 +17,7 @@ click-plugins==1.1.1.2
 click-repl==0.3.0
 colorama==0.4.6
 commonmark==0.9.1
+coverage==7.13.4
 crispy-bootstrap5==2025.6
 cron_descriptor==2.0.6
 cryptography==45.0.7
@@ -38,6 +39,7 @@ django-picklefield==3.3
 django-prometheus==2.4.1
 django-q2==1.8.0
 django-redis==6.0.0
+django-schema-viewer==0.5.3
 django-tempus-dominus==5.1.2.17
 django-timezone-field==7.1
 django_celery_results==2.6.0
@@ -51,11 +53,14 @@ google-auth==2.47.0
 google-auth-httplib2==0.3.0
 google-auth-oauthlib==1.2.4
 googleapis-common-protos==1.72.0
+graphviz==0.21
 gunicorn==23.0.0
 hiredis==3.3.0
 httplib2==0.31.2
 humanize==4.15.0
+icalendar==5.0.11
 idna==3.11
+iniconfig==2.3.0
 kombu==5.5.4
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
@@ -71,6 +76,7 @@ pilkit==3.0
 pillow==11.3.0
 pip-tools==7.5.2
 platformdirs==4.5.1
+pluggy==1.6.0
 prometheus_client==0.23.1
 prompt_toolkit==3.0.52
 proto-plus==1.27.0
@@ -84,13 +90,16 @@ Pygments==2.19.2
 PyJWT==2.10.1
 pyparsing==3.3.2
 pyproject_hooks==1.2.0
+pytest==9.0.2
+pytest-cov==7.0.0
+pytest-django==4.11.1
 python-crontab==3.3.0
 python-dateutil==2.9.0.post0
 python-decouple==3.8
 python-dotenv==1.1.1
 python-ulid==3.1.0
 python3-openid==3.2.0
-pytz==2025.2
+pytz==2024.1
 PyYAML==6.0.3
 rcssmin==1.2.2
 redis==7.1.0

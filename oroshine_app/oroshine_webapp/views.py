@@ -46,8 +46,16 @@ from .tasks import (
     send_welcome_email_task,
     send_contact_email_task,
     send_password_reset_email_task,
-    send_password_reset_success_email_task
+    send_password_reset_success_email_task,
+    send_appointment_cancel_email_task
 )
+
+
+from django.contrib.auth.views import PasswordResetConfirmView
+
+
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +86,7 @@ def rate_limit(key_prefix, limit=5, window=900):
                     return JsonResponse({'status': 'error', 'message': msg}, status=429)
                 else:
                     messages.error(request, msg)
-                    return redirect('login')
+                    return redirect('custom_login')
             
             response = view_func(request, *args, **kwargs)
             
@@ -238,7 +246,7 @@ def register_request(request):
 
 
 
-@rate_limit('login', limit=10, window=900)
+@rate_limit('login', limit=5, window=900)
 def login_request(request):
     if request.user.is_authenticated:
         return redirect('home')
@@ -470,7 +478,6 @@ def appointment(request):
 # CANCEL APPOINTMENT
 # ==========================================
 
-from .tasks import send_appointment_cancel_email_task
 
 @login_required
 @require_http_methods(["POST"])
@@ -661,13 +668,7 @@ class CustomPasswordResetView(PasswordResetView):
 
 
 
-# =============================================
-# ADD THIS CLASS to views.py
-# Place it right after CustomPasswordResetView
-# =============================================
 
-from django.contrib.auth.views import PasswordResetConfirmView
-from django.urls import reverse_lazy
 
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     """

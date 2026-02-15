@@ -56,6 +56,10 @@ INSTALLED_APPS = [
     'imagekit',
     'django.contrib.humanize',
     'corsheaders',
+    'django_extensions',
+    'schema_viewer',
+
+
 
     # Social authentication
     'allauth',
@@ -139,8 +143,12 @@ DATABASES = {
 # ==========================================
 REDIS_PASSWORD = config('REDIS_PASSWORD', '')
 REDIS_HOST = config('REDIS_HOST', 'redis')
-REDIS_PORT = config('REDIS_PORT', '6379')
-REDIS_DB = config('REDIS_DB', '0')
+REDIS_PORT = config('REDIS_PORT', '6379',cast=int)
+REDIS_DB = config('REDIS_DB', '1',cast=int)
+
+CELERY_BROKER_URL = f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}'
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+
 
 CACHES = {
     "default": {
@@ -152,7 +160,7 @@ CACHES = {
             'SOCKET_TIMEOUT': 5,
             'CONNECTION_POOL_KWARGS': {'max_connections': 25},
             'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
-            'IGNORE_EXCEPTIONS': True,
+            'IGNORE_EXCEPTIONS': False,
         },
         "KEY_PREFIX": "oroshine",
         "TIMEOUT": 300,
@@ -286,12 +294,16 @@ ACCOUNT_LOGOUT_ON_GET = True
 # Social provider settings
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
-        'SCOPE': ['profile', 'email'],
-        'AUTH_PARAMS': {'access_type': 'online'},
+        'SCOPE': [
+            'openid',
+            'email',
+            'profile',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'offline',   # REQUIRED
+            'prompt': 'consent',        # REQUIRED (forces refresh_token)
+        },
         'OAUTH_PKCE_ENABLED': True,
-        'FETCH_USERINFO': True,
-        'VERIFIED_EMAIL': True,
-        'EMAIL_REQUIRED': True,
     },
     'linkedin_oauth2': {
         'SCOPE': ['r_basicprofile', 'r_emailaddress'],
