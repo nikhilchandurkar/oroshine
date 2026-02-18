@@ -9,25 +9,32 @@ on:
 
 jobs:
   check-build:
+    name: Check Build Status
     runs-on: ubuntu-latest
     outputs:
       should_deploy: ${{ steps.check.outputs.should_deploy }}
 
     steps:
-      - id: check
+      - name: Verify build result
+        id: check
         run: |
+          # Manual trigger → always deploy
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "should_deploy=true" >> $GITHUB_OUTPUT
             exit 0
           fi
 
+          # Deploy only if build succeeded
           if [ "${{ github.event.workflow_run.conclusion }}" == "success" ]; then
             echo "should_deploy=true" >> $GITHUB_OUTPUT
+            echo "✅ Build succeeded. Proceeding with deployment."
           else
             echo "should_deploy=false" >> $GITHUB_OUTPUT
+            echo "❌ Build failed. Skipping deployment."
           fi
 
   deploy:
+    name: Deploy to EC2
     runs-on: ubuntu-latest
     needs: check-build
     if: needs.check-build.outputs.should_deploy == 'true'
@@ -36,11 +43,28 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_SSH_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          port: 22
+          script_stop: true
           script: |
-            cd /home/${{ secrets.SSH_USER }}/oroshine
-            docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKER_PASSWORD }}"
+            set -e
+
+            echo "🚀 Starting deployment..."
+
+            cd /home/${{ secrets.EC2_SSH_USER }}/oroshine
+
+            echo "🔐 Logging into Docker Hub..."
+            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+            echo "📥 Pulling latest image..."
             docker-compose pull web
-            docker-compose up -d
+
+            echo "🔄 Restarting containers..."
+            docker-compose up -d --remove-orphans
+
+            echo "🧹 Cleaning old images..."
+            docker image prune -af --filter "until=240h"
+
+            echo "✅ Deployment completed successfully!"
