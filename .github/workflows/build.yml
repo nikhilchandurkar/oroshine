@@ -2,10 +2,10 @@ name: Build Docker Image
 
 on:
   push:
-    branches: [ main, develop, staging ]
+    branches: [ main, develop, staging,master ]
   workflow_run:
     workflows: ["Test Suite", "Security Scanning", "Code Quality"]
-    branches: [ main, develop ]
+    branches: [ main, develop ,master]
     types: [ completed ]
 
 env:
