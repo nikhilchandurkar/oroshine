@@ -1,0 +1,169 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop,master ]
+  pull_request:
+    branches: [ main,master ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for better analysis
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests with coverage
+        env:
+          DATABASE_ENGINE: django.db.backends.postgresql
+          DATABASE_NAME: ':memory:'
+          SECRET_KEY: test-secret-key-for-quality
+          DEBUG: False
+          ALLOWED_HOSTS: localhost
+        run: |
+          pytest --cov=. --cov-report=xml --cov-report=html
+        continue-on-error: true
+
+      - name: Fix coverage file paths
+        run: |
+          # SonarCloud needs relative paths
+          sed -i 's|/home/runner/work/oroshine/oroshine|/github/workspace|g' coverage.xml
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=your-org
+            -Dsonar.projectKey=your-project-key
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.python.version=3.11
+            -Dsonar.sources=.
+            -Dsonar.exclusions=**/migrations/**,**/tests/**,**/static/**,**/media/**,**/__pycache__/**
+            -Dsonar.test.inclusions=**/tests/**
+            -Dsonar.coverage.exclusions=**/tests/**,**/migrations/**
+        continue-on-error: true
+
+  code-metrics:
+    name: Code Metrics
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install analysis tools
+        run: |
+          pip install radon xenon mccabe
+
+      - name: Calculate cyclomatic complexity
+        run: |
+          echo "📊 Cyclomatic Complexity Analysis"
+          radon cc . -a -s || true
+
+      - name: Calculate maintainability index
+        run: |
+          echo "📈 Maintainability Index"
+          radon mi . -s || true
+
+      - name: Calculate raw metrics
+        run: |
+          echo "📏 Raw Metrics (LOC, Comments, etc.)"
+          radon raw . -s || true
+
+      - name: Check complexity thresholds
+        run: |
+          echo "🔍 Checking complexity thresholds"
+          xenon --max-absolute B --max-modules A --max-average A . || true
+
+  code-duplication:
+    name: Code Duplication Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pylint
+        run: |
+          pip install pylint
+
+      - name: Check for duplicate code
+        run: |
+          echo "🔍 Checking for duplicate code"
+          pylint --disable=all --enable=duplicate-code --min-similarity-lines=5 $(git ls-files '*.py') || true
+
+  documentation-quality:
+    name: Documentation Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install documentation tools
+        run: |
+          pip install pydocstyle interrogate
+
+      - name: Check docstring coverage
+        run: |
+          echo "📝 Checking docstring coverage"
+          interrogate -v . || true
+
+      - name: Check docstring style
+        run: |
+          echo "✍️  Checking docstring style (PEP 257)"
+          pydocstyle . || true
+
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: [sonarcloud, code-metrics, code-duplication, documentation-quality]
+    if: always()
+    
+    steps:
+      - name: Check quality results
+        run: |
+          echo "📊 Code Quality Summary"
+          echo "======================="
+          echo "SonarCloud: ${{ needs.sonarcloud.result }}"
+          echo "Code Metrics: ${{ needs.code-metrics.result }}"
+          echo "Duplication Check: ${{ needs.code-duplication.result }}"
+          echo "Documentation: ${{ needs.documentation-quality.result }}"
+          
+          # Quality checks complete (they're informational, not blocking)
+          echo "✅ Code quality analysis completed"
