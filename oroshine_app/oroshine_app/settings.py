@@ -72,7 +72,7 @@ INSTALLED_APPS = [
     'oroshine_webapp',
 ]
 
-SITE_ID = 8
+SITE_ID =  config('SITE_ID',cast=int)
 
 MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
