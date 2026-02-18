@@ -12,30 +12,30 @@ env:
   REGISTRY: docker.io
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/oroshine
 
-jobs:
-  check-prerequisites:
-    name: Check Prerequisites
-    runs-on: ubuntu-latest
-    outputs:
-      should_build: ${{ steps.check.outputs.should_build }}
+# jobs:
+#   check-prerequisites:
+#     name: Check Prerequisites
+#     runs-on: ubuntu-latest
+#     outputs:
+#       should_build: ${{ steps.check.outputs.should_build }}
     
-    steps:
-      - name: Check if prerequisites passed
-        id: check
-        run: |
-          # For push events, always build
-          if [ "${{ github.event_name }}" == "push" ]; then
-            echo "should_build=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
+#     steps:
+#       - name: Check if prerequisites passed
+#         id: check
+#         run: |
+#           # For push events, always build
+#           if [ "${{ github.event_name }}" == "push" ]; then
+#             echo "should_build=true" >> $GITHUB_OUTPUT
+#             exit 0
+#           fi
           
-          # For workflow_run events, check if previous workflows succeeded
-          if [ "${{ github.event.workflow_run.conclusion }}" == "success" ]; then
-            echo "should_build=true" >> $GITHUB_OUTPUT
-          else
-            echo "should_build=false" >> $GITHUB_OUTPUT
-            echo "❌ Prerequisites failed. Skipping build."
-          fi
+#           # For workflow_run events, check if previous workflows succeeded
+#           if [ "${{ github.event.workflow_run.conclusion }}" == "success" ]; then
+#             echo "should_build=true" >> $GITHUB_OUTPUT
+#           else
+#             echo "should_build=false" >> $GITHUB_OUTPUT
+#             echo "❌ Prerequisites failed. Skipping build."
+#           fi
 
   build:
     name: Build and Push Docker Image
